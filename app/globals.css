@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 142 98% 42%;
+    --primary-foreground: 355.7 100% 97.3%;
+
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    --accent: 142 98% 95%;
+    --accent-foreground: 142 70% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 142 98% 42%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 142 50% 4%;
+    --foreground: 0 0% 98%;
+
+    --card: 142 50% 6%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 142 45% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 142 98% 42%;
+    --primary-foreground: 144 100% 10%;
+
+    --secondary: 142 30% 15%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 142 30% 15%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --accent: 142 30% 15%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 142 30% 18%;
+    --input: 142 30% 18%;
+    --ring: 142 98% 42%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground transition-colors;
+  }
+}
+
+/* Print styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #receipt-to-print,
+  #receipt-to-print * {
+    visibility: visible;
+  }
+
+  #receipt-to-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background-color: white !important;
+    color: black !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Ensure proper page breaks */
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  /* Ensure background colors print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* When body has the printing-receipt class */
+body.printing-receipt .print\:hidden {
+  display: none !important;
+}
+
+body.printing-receipt #receipt-to-print {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  background-color: white;
+  box-sizing: border-box;
+}
