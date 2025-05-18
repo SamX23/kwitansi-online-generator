@@ -8,7 +8,6 @@ import { id } from "date-fns/locale";
 import {
   Share2,
   Download,
-  Upload,
   RefreshCw,
   Pen,
   FileImage,
@@ -42,7 +41,6 @@ import { toast } from "sonner";
 interface LineItem {
   id: string;
   description: string;
-  quantity: number;
   price: number;
   amount: number;
 }
@@ -50,12 +48,13 @@ interface LineItem {
 interface ReceiptData {
   amount: string;
   from: string;
+  fromNpa: string;
   date: string;
   note: string;
-  logo: string | null;
   receiver: string;
-  companyName: string;
+  receiverNpa: string;
   payerSignature: string | null;
+  method: string;
   signatureMethod: "draw" | "upload" | null;
   items: LineItem[];
 }
@@ -64,23 +63,26 @@ export default function ReceiptGenerator() {
   const [receiptData, setReceiptData] = useState<ReceiptData>({
     amount: "",
     from: "",
+    fromNpa: "-",
     date: format(new Date(), "yyyy-MM-dd"),
     note: "",
-    logo: null,
-    receiver: "",
-    companyName: "",
+    receiver: "Sami Kalammallah",
+    receiverNpa: "24.0093",
     payerSignature: null,
     signatureMethod: null,
+    method: "cash",
     items: [
       {
         id: crypto.randomUUID(),
         description: "",
-        quantity: 1,
         price: 0,
         amount: 0,
       },
     ],
   });
+
+  const kuitansiIdentifier = `BEND-${format(new Date(), "yyyyMMdd")}-001`;
+
   const [activeTab, setActiveTab] = useState("form");
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
   const [activeSignatureMethod, setActiveSignatureMethod] = useState<
@@ -102,22 +104,6 @@ export default function ReceiptGenerator() {
   ) => {
     const { name, value } = e.target;
     setReceiptData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target) {
-          setReceiptData((prev) => ({
-            ...prev,
-            logo: event.target?.result as string,
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
-    }
   };
 
   const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -215,7 +201,6 @@ export default function ReceiptGenerator() {
         {
           id: crypto.randomUUID(),
           description: "",
-          quantity: 1,
           price: 0,
           amount: 0,
         },
@@ -249,12 +234,10 @@ export default function ReceiptGenerator() {
         if (item.id === id) {
           const updatedItem = { ...item, [field]: value };
 
-          // Auto-calculate amount if quantity or price changes
-          if (field === "quantity" || field === "price") {
-            const quantity =
-              field === "quantity" ? Number(value) : item.quantity;
+          // Auto-calculate amount if price changes
+          if (field === "price") {
             const price = field === "price" ? Number(value) : item.price;
-            updatedItem.amount = quantity * price;
+            updatedItem.amount = price;
           }
 
           return updatedItem;
@@ -276,12 +259,6 @@ export default function ReceiptGenerator() {
     }).format(value);
   };
 
-  // Generate a receipt number with current date
-  const receiptNumber = `REC-${format(new Date(), "yyyyMMdd")}-${Math.random()
-    .toString(36)
-    .substring(2, 6)
-    .toUpperCase()}`;
-
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-2 print:hidden">
@@ -294,17 +271,6 @@ export default function ReceiptGenerator() {
           <CardContent className="pt-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="companyName">Nama Perusahaan/Bisnis</Label>
-                <Input
-                  id="companyName"
-                  name="companyName"
-                  placeholder="Nama perusahaan Anda"
-                  value={receiptData.companyName}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="receiver">Nama Anda (Penerima)</Label>
                 <Input
                   id="receiver"
@@ -316,33 +282,14 @@ export default function ReceiptGenerator() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="logo">Logo Anda</Label>
-                <div className="flex items-center gap-4">
-                  <Input
-                    id="logo"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => document.getElementById("logo")?.click()}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload size={16} />
-                    Unggah Logo
-                  </Button>
-                  {receiptData.logo && (
-                    <div className="h-12 w-12 relative">
-                      <img
-                        src={receiptData.logo || "/placeholder.svg"}
-                        alt="Pratinjau logo"
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-                  )}
-                </div>
+                <Label htmlFor="receiverNpa">NPA Penerima</Label>
+                <Input
+                  id="receiverNpa"
+                  name="receiverNpa"
+                  placeholder="Nomor Pokok Anggota"
+                  value={receiptData.receiverNpa}
+                  onChange={handleInputChange}
+                />
               </div>
 
               <div className="space-y-2">
@@ -357,6 +304,37 @@ export default function ReceiptGenerator() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="fromNpa">NPA Pembayar (Jika ada)</Label>
+                <Input
+                  id="fromNpa"
+                  name="fromNpa"
+                  placeholder="Nomor Pokok Anggota"
+                  value={receiptData.fromNpa}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              {/* method input */}
+              <div className="space-y-2">
+                <Label htmlFor="method">Metode Pembayaran</Label>
+                <Select
+                  value={receiptData.method}
+                  onValueChange={(value) =>
+                    setReceiptData((prev) => ({ ...prev, method: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih metode pembayaran" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Tunai</SelectItem>
+                    <SelectItem value="transfer">Transfer</SelectItem>
+                    <SelectItem value="other">Lainnya</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="date">Tanggal</Label>
                 <Input
                   id="date"
@@ -364,6 +342,7 @@ export default function ReceiptGenerator() {
                   type="date"
                   value={receiptData.date}
                   onChange={handleInputChange}
+                  className="w-full"
                 />
               </div>
 
@@ -389,14 +368,8 @@ export default function ReceiptGenerator() {
                         <th className="text-left p-2 text-xs font-medium text-muted-foreground">
                           Deskripsi
                         </th>
-                        <th className="text-right p-2 text-xs font-medium text-muted-foreground w-16">
-                          Jumlah
-                        </th>
                         <th className="text-right p-2 text-xs font-medium text-muted-foreground w-24">
                           Harga
-                        </th>
-                        <th className="text-right p-2 text-xs font-medium text-muted-foreground w-24">
-                          Total
                         </th>
                         <th className="w-10"></th>
                       </tr>
@@ -421,21 +394,6 @@ export default function ReceiptGenerator() {
                           <td className="p-2">
                             <Input
                               type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                updateLineItem(
-                                  item.id,
-                                  "quantity",
-                                  Number(e.target.value),
-                                )
-                              }
-                              className="border-0 focus-visible:ring-0 p-0 h-8 text-sm text-right bg-transparent"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
                               min="0"
                               value={item.price}
                               onChange={(e) =>
@@ -447,9 +405,6 @@ export default function ReceiptGenerator() {
                               }
                               className="border-0 focus-visible:ring-0 p-0 h-8 text-sm text-right bg-transparent"
                             />
-                          </td>
-                          <td className="p-2 text-right font-medium">
-                            {formatCurrency(item.amount)}
                           </td>
                           <td className="p-2">
                             <Button
@@ -470,9 +425,7 @@ export default function ReceiptGenerator() {
                     </tbody>
                     <tfoot className="bg-muted">
                       <tr className="border-t border-border">
-                        <td colSpan={3} className="p-2 text-right font-medium">
-                          Total
-                        </td>
+                        <td className="p-2 text-right font-medium">Total</td>
                         <td className="p-2 text-right font-bold">
                           {formatCurrency(
                             receiptData.items.reduce(
@@ -528,7 +481,7 @@ export default function ReceiptGenerator() {
                         )}
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
+                    <DialogContent className="sm:max-w-lg">
                       <DialogHeader>
                         <DialogTitle>Tambah Tanda Tangan Pembayar</DialogTitle>
                         <DialogDescription>
@@ -615,7 +568,11 @@ export default function ReceiptGenerator() {
               <Button
                 className="w-full mt-4"
                 onClick={generateReceipt}
-                disabled={!receiptData.from || !receiptData.receiver}
+                disabled={
+                  !receiptData.from ||
+                  !receiptData.receiver ||
+                  !receiptData.receiverNpa
+                }
               >
                 Buat Kuitansi
               </Button>
@@ -655,35 +612,25 @@ export default function ReceiptGenerator() {
             <div className="bg-slate-50 p-6 md:p-8 border-b">
               <div className="flex justify-between items-center">
                 <div>
-                  {receiptData.companyName && (
-                    <h1 className="text-xl font-bold text-slate-700 mb-1">
-                      {receiptData.companyName}
-                    </h1>
-                  )}
+                  <h1 className="text-xl font-bold text-slate-700 mb-1">
+                    PC Pemuda Persis Kab. Cianjur
+                  </h1>
                   <h2 className="text-2xl font-bold text-slate-800">
                     KUITANSI
                   </h2>
                   <div className="flex items-center mt-2">
-                    <div className="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-xs font-medium">
-                      {receiptNumber}
+                    <div className="bg-slate-200 text-slate-700 px-3 py-1 rounded text-xs font-medium">
+                      {kuitansiIdentifier}
                     </div>
                   </div>
                 </div>
-                {receiptData.logo ? (
-                  <div className="h-20 w-40">
-                    <img
-                      src={receiptData.logo || "/placeholder.svg"}
-                      alt="Logo perusahaan"
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="h-20 w-40 bg-slate-100 flex items-center justify-center rounded border border-slate-200">
-                    <p className="text-slate-400 text-xs text-center">
-                      Logo Anda
-                    </p>
-                  </div>
-                )}
+                <div className="h-24 w-40">
+                  <img
+                    src={"/logo-pemuda.png"}
+                    alt="Logo perusahaan"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
               </div>
             </div>
 
@@ -703,7 +650,7 @@ export default function ReceiptGenerator() {
 
                   <div>
                     <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                      Diterima Dari
+                      Dari
                     </h3>
                     <p className="font-medium text-slate-800">
                       {receiptData.from || "Nama Pembayar"}
@@ -714,7 +661,7 @@ export default function ReceiptGenerator() {
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                      Tanggal Kuitansi
+                      Tanggal Diterima
                     </h3>
                     <p className="font-medium text-slate-800">
                       {receiptData.date
@@ -729,7 +676,13 @@ export default function ReceiptGenerator() {
                     <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                       Metode Pembayaran
                     </h3>
-                    <p className="font-medium text-slate-800">Tunai</p>
+                    <p className="font-medium text-slate-800">
+                      {receiptData.method === "cash"
+                        ? "Tunai"
+                        : receiptData.method === "transfer"
+                          ? "Transfer"
+                          : "Lainnya"}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -747,13 +700,7 @@ export default function ReceiptGenerator() {
                           Deskripsi
                         </th>
                         <th className="text-right py-3 px-4 text-xs font-semibold text-slate-600">
-                          Jumlah
-                        </th>
-                        <th className="text-right py-3 px-4 text-xs font-semibold text-slate-600">
                           Harga
-                        </th>
-                        <th className="text-right py-3 px-4 text-xs font-semibold text-slate-600">
-                          Total
                         </th>
                       </tr>
                     </thead>
@@ -764,23 +711,14 @@ export default function ReceiptGenerator() {
                             {item.description || "Item"}
                           </td>
                           <td className="py-3 px-4 text-right text-slate-700">
-                            {item.quantity}
-                          </td>
-                          <td className="py-3 px-4 text-right text-slate-700">
                             {formatCurrency(item.price)}
-                          </td>
-                          <td className="py-3 px-4 text-right font-medium text-slate-800">
-                            {formatCurrency(item.amount)}
                           </td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr className="border-t border-slate-200 bg-slate-50">
-                        <td
-                          colSpan={3}
-                          className="py-3 px-4 text-right font-semibold text-slate-700"
-                        >
+                        <td className="py-3 px-4 text-right font-semibold text-slate-700">
                           Total
                         </td>
                         <td className="py-3 px-4 text-right font-bold text-slate-800">
@@ -816,7 +754,7 @@ export default function ReceiptGenerator() {
                     <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
                       Diterima Oleh
                     </h3>
-                    <div className="h-16 mb-2">
+                    <div className="h-20 mb-2">
                       <img
                         src="/signature.png"
                         alt="Tanda tangan penerima"
@@ -827,6 +765,9 @@ export default function ReceiptGenerator() {
                       <p className="font-medium text-slate-700">
                         {receiptData.receiver || "Nama Anda"}
                       </p>
+                      <p className="font-medium text-slate-500">
+                        {receiptData.receiverNpa || "NPA Penerima"}
+                      </p>
                     </div>
                   </div>
 
@@ -834,7 +775,7 @@ export default function ReceiptGenerator() {
                     <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
                       Tanda Tangan Pembayar
                     </h3>
-                    <div className="h-16 mb-2">
+                    <div className="h-20 mb-2">
                       {receiptData.payerSignature ? (
                         <img
                           src={receiptData.payerSignature || "/placeholder.svg"}
@@ -849,6 +790,9 @@ export default function ReceiptGenerator() {
                       <p className="font-medium text-slate-700">
                         {receiptData.from || "Nama Pembayar"}
                       </p>
+                      <p className="font-medium text-slate-500">
+                        {receiptData.fromNpa || "NPA Pembayar"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -856,8 +800,8 @@ export default function ReceiptGenerator() {
 
               {/* Footer */}
               <div className="text-center mt-12 pt-8 border-t border-slate-200">
-                <p className="text-sm text-slate-600 font-medium">
-                  Terima kasih atas kerjasamanya!
+                <p className="text-xl text-slate-600 font-medium">
+                  جَزَاكَ اللهُ خَيْر
                 </p>
                 <p className="text-xs text-slate-500 mt-2">
                   Kuitansi ini dibuat pada{" "}
