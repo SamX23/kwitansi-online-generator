@@ -6,7 +6,7 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
     "directory": ".open-next/assets",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
   },
   "r2_buckets": [
     // Use R2 incremental cache
@@ -16,7 +16,7 @@
       // Create the bucket before deploying
       // You can change the bucket name if you want
       // See https://developers.cloudflare.com/workers/wrangler/commands/#r2-bucket-create
-      "bucket_name": "cache"
-    }
-  ]
+      "bucket_name": "cache",
+    },
+  ],
 }
