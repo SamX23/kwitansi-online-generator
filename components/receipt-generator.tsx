@@ -81,7 +81,15 @@ export default function ReceiptGenerator() {
     ],
   });
 
-  const kuitansiIdentifier = `BEND-${format(new Date(), "yyyyMMdd")}-001`;
+  // Function to get the current hour and minute in 24-hour format
+  const getTodayHourIn24 = () => {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, "0");
+    const minutes = now.getMinutes().toString().padStart(2, "0");
+    return `${hours}${minutes}`;
+  };
+
+  const kuitansiIdentifier = `BEND-${format(new Date(), "yyyyMMdd")}-${getTodayHourIn24()}`;
 
   const [activeTab, setActiveTab] = useState("form");
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
@@ -613,7 +621,7 @@ export default function ReceiptGenerator() {
               <div className="flex justify-between items-center">
                 <div>
                   <h1 className="text-xl font-bold text-slate-700 mb-1">
-                    PC Pemuda Persis Kab. Cianjur
+                    PC Pemuda Persis Kec. Cianjur
                   </h1>
                   <h2 className="text-2xl font-bold text-slate-800">
                     KUITANSI
