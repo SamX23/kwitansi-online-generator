@@ -10,8 +10,7 @@ export function Footer() {
           &copy; {currentYear} Kuitansi Online. All rights reserved.
         </p>
         <p className="text-xs text-muted-foreground flex items-center gap-1">
-          Coded with <Heart className="h-3 w-3 fill-primary text-primary" /> by
-          Sami, untuk memudahkan transaksi Anda
+          <Heart className="h-3 w-3 fill-primary text-primary" /> by <a href="https://labs.persis.or.id" target="_blank" className="underline text-green-500 font-semibold">Persis Labs</a> Member
         </p>
       </div>
     </footer>
