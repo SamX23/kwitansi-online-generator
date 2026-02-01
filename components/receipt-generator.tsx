@@ -13,7 +13,9 @@ import {
   FileImage,
   Plus,
   Trash2,
+  Type,
 } from "lucide-react";
+import { Dancing_Script } from "next/font/google";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +40,11 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
+const handwritingFont = Dancing_Script({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+});
+
 interface LineItem {
   id: string;
   description: string;
@@ -55,7 +62,7 @@ interface ReceiptData {
   receiverNpa: string;
   payerSignature: string | null;
   method: string;
-  signatureMethod: "draw" | "upload" | null;
+  signatureMethod: "draw" | "upload" | "handwriting" | null;
   items: LineItem[];
 }
 
@@ -69,7 +76,7 @@ export default function ReceiptGenerator() {
     receiver: "Sami Kalammallah",
     receiverNpa: "24.0093",
     payerSignature: null,
-    signatureMethod: null,
+    signatureMethod: "handwriting",
     method: "cash",
     items: [
       {
@@ -94,8 +101,8 @@ export default function ReceiptGenerator() {
   const [activeTab, setActiveTab] = useState("form");
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
   const [activeSignatureMethod, setActiveSignatureMethod] = useState<
-    "draw" | "upload"
-  >("draw");
+    "draw" | "upload" | "handwriting"
+  >("handwriting");
   const receiptRef = useRef<HTMLDivElement>(null);
 
   // Calculate total amount whenever items change
@@ -474,11 +481,14 @@ export default function ReceiptGenerator() {
                         className="w-full flex justify-between items-center"
                       >
                         <span>
-                          {receiptData.payerSignature
+                          {receiptData.payerSignature ||
+                          receiptData.signatureMethod === "handwriting"
                             ? `Tanda Tangan Ditambahkan (${
                                 receiptData.signatureMethod === "draw"
                                   ? "Digambar"
-                                  : "Diunggah"
+                                  : receiptData.signatureMethod === "upload"
+                                    ? "Diunggah"
+                                    : "Handwriting"
                               })`
                             : "Tambah Tanda Tangan Pembayar"}
                         </span>
@@ -508,6 +518,9 @@ export default function ReceiptGenerator() {
                             <SelectValue placeholder="Pilih metode tanda tangan" />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="handwriting">
+                              Gunakan Nama (Handwriting)
+                            </SelectItem>
                             <SelectItem value="draw">
                               Gambar Tanda Tangan
                             </SelectItem>
@@ -516,6 +529,31 @@ export default function ReceiptGenerator() {
                             </SelectItem>
                           </SelectContent>
                         </Select>
+
+                        {activeSignatureMethod === "handwriting" && (
+                          <div className="space-y-2">
+                            <Label>Pratinjau Handwriting</Label>
+                            <div className="border rounded-md p-4 flex items-center justify-center bg-white min-h-[100px]">
+                              <span
+                                className={`${handwritingFont.className} text-4xl text-slate-800`}
+                              >
+                                {receiptData.from || "Nama Pembayar"}
+                              </span>
+                            </div>
+                            <Button
+                              className="w-full"
+                              onClick={() => {
+                                setReceiptData((prev) => ({
+                                  ...prev,
+                                  signatureMethod: "handwriting",
+                                }));
+                                setSignatureDialogOpen(false);
+                              }}
+                            >
+                              Gunakan Metode Ini
+                            </Button>
+                          </div>
+                        )}
 
                         {activeSignatureMethod === "draw" && (
                           <div className="space-y-2">
@@ -556,17 +594,28 @@ export default function ReceiptGenerator() {
                     </DialogContent>
                   </Dialog>
 
-                  {receiptData.payerSignature && (
+                  {(receiptData.payerSignature ||
+                    receiptData.signatureMethod === "handwriting") && (
                     <div className="border rounded-md p-2 bg-muted">
                       <p className="text-xs text-muted-foreground mb-2">
                         Pratinjau Tanda Tangan:
                       </p>
-                      <div className="h-16 border-b border-border">
-                        <img
-                          src={receiptData.payerSignature || "/placeholder.svg"}
-                          alt="Tanda tangan pembayar"
-                          className="h-full object-contain"
-                        />
+                      <div className="h-16 border-b border-border flex items-center justify-center bg-white overflow-hidden">
+                        {receiptData.signatureMethod === "handwriting" ? (
+                          <span
+                            className={`${handwritingFont.className} text-3xl text-slate-800`}
+                          >
+                            {receiptData.from || "Nama Pembayar"}
+                          </span>
+                        ) : (
+                          <img
+                            src={
+                              receiptData.payerSignature || "/placeholder.svg"
+                            }
+                            alt="Tanda tangan pembayar"
+                            className="h-full object-contain"
+                          />
+                        )}
                       </div>
                     </div>
                   )}
@@ -783,15 +832,27 @@ export default function ReceiptGenerator() {
                     <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
                       Tanda Tangan Pembayar
                     </h3>
-                    <div className="h-20 mb-2">
-                      {receiptData.payerSignature ? (
-                        <img
-                          src={receiptData.payerSignature || "/placeholder.svg"}
-                          alt="Tanda tangan pembayar"
-                          className="h-full object-contain"
-                        />
+                    <div className="h-20 mb-2 flex items-center">
+                      {receiptData.signatureMethod === "handwriting" ? (
+                        <div className="w-full border-b border-slate-300 pb-2">
+                          <span
+                            className={`${handwritingFont.className} text-4xl text-slate-800`}
+                          >
+                            {receiptData.from || "Nama Pembayar"}
+                          </span>
+                        </div>
+                      ) : receiptData.payerSignature ? (
+                        <div className="h-full w-full border-b border-slate-300">
+                          <img
+                            src={
+                              receiptData.payerSignature || "/placeholder.svg"
+                            }
+                            alt="Tanda tangan pembayar"
+                            className="h-full object-contain"
+                          />
+                        </div>
                       ) : (
-                        <div className="h-full border-b border-slate-300"></div>
+                        <div className="h-full w-full border-b border-slate-300"></div>
                       )}
                     </div>
                     <div className="border-t border-slate-300 pt-2">
